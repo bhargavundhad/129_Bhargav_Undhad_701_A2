@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cat Fact Viewer</title>
+</head>
+<body>
+  <h1>🐱 Random Cat Fact</h1>
+  <p id="fact">Loading...</p>
+  <button onclick="getCatFact()">Get New Fact</button>
+
+  <script>
+    async function getCatFact() {
+      try {
+        const response = await fetch('http://localhost:3000/api/catfact');
+        const data = await response.json();
+        document.getElementById('fact').textContent = data.fact;
+      } catch (error) {
+        document.getElementById('fact').textContent = 'Error fetching fact.';
+        console.error(error);
+      }
+    }
+
+    // Load a fact on page load
+    getCatFact();
+  </script>
+</body>
+</html>

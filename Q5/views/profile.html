@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee Profile</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/profile.css" />
+</head>
+<body>
+  <nav>
+    <a href="/profile.html">Profile</a> |
+    <a href="/leave.html">Leave Application</a> |
+    <a href="#" id="logoutBtn">Logout</a>
+  </nav>
+  
+  <div class="profile-container">
+    <div class="profile-header">
+      <h2>Employee Profile</h2>
+    </div>
+    
+    <div class="profile-card fade-in-up">
+      <div class="profile-avatar" id="profileAvatar">
+        <span id="avatarInitial">?</span>
+      </div>
+      
+      <div id="profile" class="profile-info"></div>
+      
+      <div class="profile-actions">
+        <a href="/leave.html" class="action-btn primary">
+          📝 Apply for Leave
+        </a>
+        <button class="action-btn secondary" onclick="refreshProfile()">
+          🔄 Refresh Profile
+        </button>
+      </div>
+    </div>
+    
+    <div class="profile-stats">
+      <div class="stat-item">
+        <span class="stat-number" id="totalLeaves">0</span>
+        <span class="stat-label">Total Leaves</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="pendingLeaves">0</span>
+        <span class="stat-label">Pending</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="approvedLeaves">0</span>
+        <span class="stat-label">Approved</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Fetch profile data
+    async function loadProfile() {
+      const token = localStorage.getItem("token");
+      if (!token) return window.location.href = "/login.html";
+      
+      // Show loading state
+      document.getElementById("profile").innerHTML = `
+        <div class="profile-loading">
+          <div class="spinner"></div>
+          <div class="loading-text">Loading profile...</div>
+        </div>
+      `;
+      
+      try {
+        const res = await fetch("/api/profile", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const data = await res.json();
+        
+        if (data.error) return window.location.href = "/login.html";
+        
+        // Update avatar with first letter of name
+        const firstLetter = data.name ? data.name.charAt(0).toUpperCase() : '?';
+        document.getElementById("avatarInitial").textContent = firstLetter;
+        
+        // Update profile info with new structure
+        document.getElementById("profile").innerHTML = `
+          <div class="info-item">
+            <span class="info-label">Employee ID</span>
+            <span class="info-value">${data.empid}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Full Name</span>
+            <span class="info-value">${data.name}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Email Address</span>
+            <span class="info-value">${data.email}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Department</span>
+            <span class="info-value">${data.department}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Monthly Salary</span>
+            <span class="info-value salary-value">₹${data.salary.toLocaleString()}</span>
+          </div>
+        `;
+        
+        // Load leave statistics
+        loadLeaveStats();
+        
+      } catch (error) {
+        document.getElementById("profile").innerHTML = `
+          <div class="error-message show">
+            Failed to load profile. Please try again.
+          </div>
+        `;
+      }
+    }
+    
+    // Load leave statistics
+    async function loadLeaveStats() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/leave", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const leaves = await res.json();
+        
+        const total = leaves.length;
+        const pending = leaves.filter(l => !l.grant && l.grant !== false).length;
+        const approved = leaves.filter(l => l.grant === true).length;
+        
+        document.getElementById("totalLeaves").textContent = total;
+        document.getElementById("pendingLeaves").textContent = pending;
+        document.getElementById("approvedLeaves").textContent = approved;
+        
+      } catch (error) {
+        console.error("Failed to load leave stats:", error);
+      }
+    }
+    
+    // Refresh profile function
+    function refreshProfile() {
+      loadProfile();
+    }
+    
+    loadProfile();
+
+    // Logout
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Leave Application</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/leave.css" />
+</head>
+<body>
+  <nav>
+    <a href="/profile.html">Profile</a> |
+    <a href="/leave.html">Leave Application</a> |
+    <a href="#" id="logoutBtn">Logout</a>
+  </nav>
+  
+  <div class="leave-container">
+    <div class="leave-header">
+      <h2>Leave Application</h2>
+    </div>
+    
+    <div class="leave-stats">
+      <div class="stat-card">
+        <span class="stat-number" id="totalLeavesCount">0</span>
+        <span class="stat-label">Total Applications</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="pendingLeavesCount">0</span>
+        <span class="stat-label">Pending</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-number" id="approvedLeavesCount">0</span>
+        <span class="stat-label">Approved</span>
+      </div>
+    </div>
+    
+    <div class="leave-form-card fade-in-up">
+      <h3>Apply for New Leave</h3>
+      
+      <div id="leaveMessageContainer"></div>
+      
+      <form id="leaveForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="leaveDate">Leave Date</label>
+            <input type="date" id="leaveDate" name="date" required />
+          </div>
+          <div class="form-group">
+            <label for="leaveReason">Reason for Leave</label>
+            <input type="text" id="leaveReason" name="reason" placeholder="Enter reason for leave" required />
+          </div>
+        </div>
+        <button type="submit" class="submit-btn">Apply for Leave</button>
+      </form>
+    </div>
+    
+    <div class="leave-history-card">
+      <h3>Your Leave Applications</h3>
+      <table class="leave-table" id="leaveTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Reason</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    // Show message function
+    function showMessage(message, type = 'success') {
+      const container = document.getElementById('leaveMessageContainer');
+      container.innerHTML = `<div class="message ${type} show">${message}</div>`;
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+
+    // Submit leave application
+    document.getElementById("leaveForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const token = localStorage.getItem("token");
+      if (!token) return window.location.href = "/login.html";
+      
+      const submitBtn = e.target.querySelector('.submit-btn');
+      const originalText = submitBtn.textContent;
+      
+      // Show loading state
+      submitBtn.textContent = 'Applying...';
+      submitBtn.disabled = true;
+      
+      try {
+        const date = e.target.date.value;
+        const reason = e.target.reason.value;
+        
+        const res = await fetch("/api/leave", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+          },
+          body: JSON.stringify({ date, reason })
+        });
+        
+        const data = await res.json();
+        
+        if (data.error) {
+          showMessage(data.error, 'error');
+        } else {
+          showMessage('Leave application submitted successfully!', 'success');
+          e.target.reset();
+          loadLeaves();
+          updateStats();
+        }
+      } catch (error) {
+        showMessage('Failed to submit leave application. Please try again.', 'error');
+      } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Load leave applications
+    async function loadLeaves() {
+      const token = localStorage.getItem("token");
+      if (!token) return window.location.href = "/login.html";
+      
+      const tbody = document.querySelector("#leaveTable tbody");
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="3" class="table-loading">
+            <div class="spinner"></div>
+            <div>Loading leave applications...</div>
+          </td>
+        </tr>
+      `;
+      
+      try {
+        const res = await fetch("/api/leave", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const leaves = await res.json();
+        
+        tbody.innerHTML = "";
+        
+        if (leaves.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="3" class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-text">No leave applications found</div>
+                <div class="empty-state-subtext">Apply for your first leave above</div>
+              </td>
+            </tr>
+          `;
+        } else {
+          leaves.forEach(l => {
+            const status = l.grant === true ? 'approved' : 
+                          l.grant === false ? 'rejected' : 'pending';
+            const statusText = l.grant === true ? 'Approved' : 
+                              l.grant === false ? 'Rejected' : 'Pending';
+            
+            tbody.innerHTML += `
+              <tr>
+                <td>${new Date(l.date).toLocaleDateString()}</td>
+                <td>${l.reason}</td>
+                <td><span class="status-badge status-${status}">${statusText}</span></td>
+              </tr>
+            `;
+          });
+        }
+        
+        updateStats();
+        
+      } catch (error) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="3" class="empty-state">
+              <div class="empty-state-icon">❌</div>
+              <div class="empty-state-text">Failed to load leave applications</div>
+              <div class="empty-state-subtext">Please refresh the page</div>
+            </td>
+          </tr>
+        `;
+      }
+    }
+    
+    // Update statistics
+    async function updateStats() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("/api/leave", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const leaves = await res.json();
+        
+        const total = leaves.length;
+        const pending = leaves.filter(l => l.grant !== true && l.grant !== false).length;
+        const approved = leaves.filter(l => l.grant === true).length;
+        
+        document.getElementById("totalLeavesCount").textContent = total;
+        document.getElementById("pendingLeavesCount").textContent = pending;
+        document.getElementById("approvedLeavesCount").textContent = approved;
+        
+      } catch (error) {
+        console.error("Failed to update stats:", error);
+      }
+    }
+    
+    // Set minimum date to today
+    document.getElementById('leaveDate').min = new Date().toISOString().split('T')[0];
+    
+    loadLeaves();
+
+    // Logout
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("token");
+      window.location.href = "/login.html";
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <script>
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+    </script>
+    <script src="./js/admin.js"></script>
+    <link href="./css/admin.css" rel="stylesheet">
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Panel</h1>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="cart.html">Cart</a>
+            <a href="orders.html">Orders</a>
+            <button class="btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <section class="admin-dashboard">
+        <nav class="admin-nav">
+            <button onclick="loadView('products')">Products</button>
+            <button onclick="loadView('categories')">Categories</button>
+            <button onclick="loadView('orders')">Orders</button>
+        </nav>
+        <div id="admin-content"></div>
+    </section>
+
+<form id="product-form">
+  <h3>Add Product</h3>
+  <input type="text" name="name" placeholder="Product Name" required />
+  <input type="number" name="price" placeholder="Price" required />
+  <input type="number" name="stock" placeholder="Stock" required />
+  <select name="category" id="category-select"></select>
+  <button type="submit">Add Product</button>
+</form>
+
+<form id="category-form">
+  <h3>Add Category</h3>
+  <input type="text" name="name" placeholder="Category Name" required />
+  <select name="parent" id="parent-category-select">
+    <option value="">None (Level 1)</option>
+  </select>
+  <button type="submit">Add Category</button>
+</form>
+
+
+</body>
+</html>

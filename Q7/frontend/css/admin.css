@@ -1,0 +1,22 @@
+.admin-dashboard {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+}
+.admin-nav {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.admin-nav button {
+  padding: 0.5rem 1rem;
+  background: #343a40;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+#admin-content {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+}
